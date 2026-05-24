@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
-// We use the browser's global Audio context to handle continuous looping playback
+// Global references for audio playback
 let alarmAudio: HTMLAudioElement | null = null;
 let snoozeTimeoutId: any = null;
 
@@ -13,39 +13,43 @@ export const AlarmTester: React.FC = () => {
     let actionListener: any;
 
     const setupAlarmEngine = async () => {
-      // 1. Define custom action buttons that appear directly on your Android lockscreen banner
-      await LocalNotifications.setActions({
-        types: [
-          {
-            id: 'ALARM_ACTIONS',
-            actions: [
-              { id: 'stop', title: '🔴 Stop Alarm', foreground: true },
-              { id: 'snooze', title: '⏰ Snooze (5 Mins)', foreground: true }
-            ]
-          }
-        ]
-      });
+      try {
+        // ✅ FIXED: Changed 'setActions' to 'registerActionTypes'
+        await LocalNotifications.registerActionTypes({
+          types: [
+            {
+              id: 'ALARM_ACTIONS',
+              actions: [
+                { id: 'stop', title: '🔴 Stop Alarm', foreground: true },
+                { id: 'snooze', title: '⏰ Snooze (5 Mins)', foreground: true }
+              ]
+            }
+          ]
+        });
 
-      // 2. LISTEN FOR THE ALARM TRIGGER: Start looping sound immediately when received
-      receivedListener = await LocalNotifications.addListener(
-        'localNotificationReceived',
-        () => {
-          startRingingEngine();
-        }
-      );
-
-      // 3. LISTEN FOR BUTTON CLICKS: Handle what happens when you press Stop or Snooze
-      actionListener = await LocalNotifications.addListener(
-        'localNotificationActionPerformed',
-        (action) => {
-          if (action.actionId === 'stop') {
-            stopRingingEngine();
-            setStatusMessage('Alarm stopped manually.');
-          } else if (action.actionId === 'snooze') {
-            triggerSnoozeLogic();
+        // Listen for the alarm trigger arrival
+        receivedListener = await LocalNotifications.addListener(
+          'localNotificationReceived',
+          () => {
+            startRingingEngine();
           }
-        }
-      );
+        );
+
+        // Listen for user clicking 'Stop' or 'Snooze'
+        actionListener = await LocalNotifications.addListener(
+          'localNotificationActionPerformed',
+          (action) => {
+            if (action.actionId === 'stop') {
+              stopRingingEngine();
+              setStatusMessage('Alarm stopped manually.');
+            } else if (action.actionId === 'snooze') {
+              triggerSnoozeLogic();
+            }
+          }
+        );
+      } catch (error) {
+        console.error("Error initializing alarm engine:", error);
+      }
     };
 
     setupAlarmEngine();
@@ -56,18 +60,16 @@ export const AlarmTester: React.FC = () => {
     };
   }, []);
 
-  // Starts infinite loop audio playback
   const startRingingEngine = () => {
     if (!alarmAudio) {
-      // Uses a standard high-pitched digital alarm sound URL
+      // High-pitched digital looping alarm audio file
       alarmAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/999/999-84.wav');
-      alarmAudio.loop = true; // ◄ CRITICAL: Tells the hardware to loop forever
+      alarmAudio.loop = true; 
     }
-    alarmAudio.play().catch((err) => console.log("Audio playback waiting for interaction: ", err));
+    alarmAudio.play().catch((err) => console.log("Audio play blocked until interaction: ", err));
     setStatusMessage('🚨 ALARM RINGING NOW! 🚨');
   };
 
-  // Stops audio playback completely
   const stopRingingEngine = () => {
     if (alarmAudio) {
       alarmAudio.pause();
@@ -78,14 +80,11 @@ export const AlarmTester: React.FC = () => {
     }
   };
 
-  // Shuts off the sound right now, but schedules a brand new execution loop 5 minutes later
   const triggerSnoozeLogic = () => {
     stopRingingEngine();
     setStatusMessage('Snoozed for 5 minutes...');
     
-    // 5 Minutes = 5 * 60 * 1000 milliseconds
     const snoozeDelay = 5 * 60 * 1000; 
-    
     snoozeTimeoutId = setTimeout(() => {
       scheduleAlarmInstance(new Date(Date.now()));
     }, snoozeDelay);
@@ -100,7 +99,7 @@ export const AlarmTester: React.FC = () => {
             body: "Wake up! Time for your scheduled spiritual commitment.",
             id: 99,
             channelId: 'alarm-channel',
-            actionTypeId: 'ALARM_ACTIONS', // Links our custom Stop/Snooze buttons
+            actionTypeId: 'ALARM_ACTIONS', 
             schedule: { 
               at: targetTime,
               allowWhileIdle: true 
@@ -121,7 +120,6 @@ export const AlarmTester: React.FC = () => {
       return;
     }
 
-    // Prepare fresh channel parameters
     try { await LocalNotifications.deleteChannel({ id: 'alarm-channel' }); } catch (e) {}
     await LocalNotifications.createChannel({
       id: 'alarm-channel',
@@ -132,14 +130,13 @@ export const AlarmTester: React.FC = () => {
       visibility: 1
     });
 
-    // Schedule test execution for 10 seconds from now
     const fireTime = new Date(Date.now() + 10000);
     await scheduleAlarmInstance(fireTime);
     setStatusMessage('Alarm set! Lock your screen now.');
   };
 
   return (
-    <div style={{ padding: '20px', textAlign: 'center', border: '2px solid #ef4444', borderRadius: '12px', margin: '20px', backgroundColor: '#1e293b' }}>
+    <div style={{ padding: '20px', textAlign: 'center', border: '2px solid #ef4444', borderRadius: '12px', margin: '20px', backgroundColor: '#1e293b', color: '#fff' }}>
       <h3 style={{ color: '#ef4444', margin: '0 0 10px 0' }}>⏰ Advanced Repeating Alarm</h3>
       <button 
         onClick={handleTestTrigger} 
@@ -149,7 +146,7 @@ export const AlarmTester: React.FC = () => {
       </button>
       
       <div style={{ marginTop: '15px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-        <button onClick={stopRingingEngine} style={{ padding: '8px 16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '4px' }}>Force Stop</button>
+        <button onClick={stopRingingEngine} style={{ padding: '8px 16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Force Stop</button>
       </div>
 
       <p style={{ marginTop: '12px', color: '#94a3b8', fontWeight: 'bold' }}>Status: {statusMessage}</p>
