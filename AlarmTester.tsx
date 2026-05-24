@@ -29,8 +29,8 @@ export const AlarmTester: React.FC = () => {
       const executionTime = new Date(Date.now() + 10000); 
 
       setStatusMessage('Scheduling alarm...');
-      
-      // 4. Register the alert with the operating system
+
+            // 4. Register the alert with the operating system with forced sound routing
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -38,13 +38,20 @@ export const AlarmTester: React.FC = () => {
             body: "Time for your scheduled spiritual reflection.",
             id: 786,
             channelId: 'alarm-channel',
+            // FIXED: Forces Android to use the default system alert audio asset
+            sound: 'default', 
             schedule: { 
               at: executionTime,
-              allowWhileIdle: true // Forces Android to fire even if phone is sleeping
+              allowWhileIdle: true 
+            },
+            extra: {
+              // Extra flags to push past background audio dampening
+              forceShow: true
             }
           }
         ]
       });
+
 
       setStatusMessage('Success! Lock your screen now. Alarm triggers in 10s.');
     } catch (error) {
