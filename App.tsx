@@ -319,6 +319,7 @@ export default function App() {
         )}
       </main>
       
+      <AlarmTester />
       {/* Floating Ambience Player */}
       <AmbiencePlayer />
 
@@ -363,8 +364,7 @@ export default function App() {
             <IconSettings className="w-6 h-6" />
             <span className="text-[10px] font-bold">Settings</span>
           </button>
-        </div>
-        <AlarmTester />
+        </div>   
       </nav>
     </div>
   );
