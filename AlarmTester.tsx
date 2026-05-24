@@ -8,29 +8,34 @@ export const AlarmTester: React.FC = () => {
     try {
       setStatusMessage('Checking permissions...');
       
-      // 1. Request permissions from the phone's OS layer
       const permissionContext = await LocalNotifications.requestPermissions();
       if (permissionContext.display !== 'granted') {
         setStatusMessage('Permission Denied by user.');
         return;
       }
 
-      // 2. Set up a notification channel required by modern Android devices
+      // 1. Delete old channel if it exists (clears Android's cached silent rule)
+      try {
+        await LocalNotifications.deleteChannel({ id: 'alarm-channel' });
+      } catch (e) {
+        // Channel didn't exist yet, safe to ignore
+      }
+
+      // 2. Re-create Channel with explicit native sound routing
       await LocalNotifications.createChannel({
         id: 'alarm-channel',
         name: 'Spiritual Reminders',
-        description: 'Critical context notifications for Hakeem AI',
-        importance: 5, // 5 = High importance (pops up on screen + plays sound)
+        description: 'Critical context alerts for Hakeem AI',
+        importance: 5,       // Max Priority
+        sound: 'default',    // ◄ FORCES native audio link at registration
         vibration: true,
         visibility: 1
       });
 
-      // 3. Set the target time exactly 10 seconds into the future
       const executionTime = new Date(Date.now() + 10000); 
-
       setStatusMessage('Scheduling alarm...');
-
-            // 4. Register the alert with the operating system with forced sound routing
+      
+      // 3. Register the alert with strict execution rules
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -38,22 +43,19 @@ export const AlarmTester: React.FC = () => {
             body: "Time for your scheduled spiritual reflection.",
             id: 786,
             channelId: 'alarm-channel',
-            // FIXED: Forces Android to use the default system alert audio asset
-            sound: 'default', 
+            sound: 'default', // ◄ Demands audio file execution
             schedule: { 
               at: executionTime,
               allowWhileIdle: true 
             },
             extra: {
-              // Extra flags to push past background audio dampening
               forceShow: true
             }
           }
         ]
       });
 
-
-      setStatusMessage('Success! Lock your screen now. Alarm triggers in 10s.');
+      setStatusMessage('Success! Lock your screen now. Alarm sounds in 10s.');
     } catch (error) {
       console.error(error);
       setStatusMessage('Alarm failed to schedule.');
