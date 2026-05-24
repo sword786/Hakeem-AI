@@ -1,8 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 export const AlarmTester: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string>('Ready');
+
+  useEffect(() => {
+    let receivedListener: any;
+
+    const setupAutomaticSpeechListener = async () => {
+      // 💥 TRIGGER IMMEDIATELY ON ARRIVAL (No clicking required!)
+      receivedListener = await LocalNotifications.addListener(
+        'localNotificationReceived',
+        (notification) => {
+          const textToSpeak = notification.body;
+          
+          if (textToSpeak) {
+            // Wake up the phone's native speech synthesizer engine
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;  // Slightly slower for crisp clear delivery
+            utterance.pitch = 1.0; 
+
+            // Stop any previous speech sounds and read out loud instantly
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+          }
+        }
+      );
+    };
+
+    setupAutomaticSpeechListener();
+
+    // Clean up our internal engine hooks when closing
+    return () => {
+      if (receivedListener) {
+        receivedListener.remove();
+      }
+    };
+  }, []);
 
   const scheduleTestAlarm = async () => {
     try {
@@ -14,20 +49,16 @@ export const AlarmTester: React.FC = () => {
         return;
       }
 
-      // 1. Delete old channel if it exists (clears Android's cached silent rule)
       try {
         await LocalNotifications.deleteChannel({ id: 'alarm-channel' });
-      } catch (e) {
-        // Channel didn't exist yet, safe to ignore
-      }
+      } catch (e) {}
 
-      // 2. Re-create Channel with explicit native sound routing
       await LocalNotifications.createChannel({
         id: 'alarm-channel',
         name: 'Spiritual Reminders',
         description: 'Critical context alerts for Hakeem AI',
-        importance: 5,       // Max Priority
-        sound: 'default',    // ◄ FORCES native audio link at registration
+        importance: 5, // Maximum priority to cut through OS background blocks
+        sound: 'default',
         vibration: true,
         visibility: 1
       });
@@ -35,18 +66,17 @@ export const AlarmTester: React.FC = () => {
       const executionTime = new Date(Date.now() + 10000); 
       setStatusMessage('Scheduling alarm...');
       
-      // 3. Register the alert with strict execution rules
       await LocalNotifications.schedule({
         notifications: [
           {
             title: "Hakeem AI Guidance",
-            body: "Time for your scheduled spiritual reflection.",
+            body: "Attention. Time for your scheduled spiritual reflection.", // ◄ The app reads this out loud automatically
             id: 786,
             channelId: 'alarm-channel',
-            sound: 'default', // ◄ Demands audio file execution
+            sound: 'default',
             schedule: { 
               at: executionTime,
-              allowWhileIdle: true 
+              allowWhileIdle: true // Tells Android not to freeze this task during sleep
             },
             extra: {
               forceShow: true
@@ -55,7 +85,7 @@ export const AlarmTester: React.FC = () => {
         ]
       });
 
-      setStatusMessage('Success! Lock your screen now. Alarm sounds in 10s.');
+      setStatusMessage('Success! Lock your screen now. Phone will speak in 10s.');
     } catch (error) {
       console.error(error);
       setStatusMessage('Alarm failed to schedule.');
@@ -63,15 +93,15 @@ export const AlarmTester: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '20px', textAlign: 'center', border: '1px solid #ccc', borderRadius: '8px', margin: '20px' }}>
-      <h3>Alarm Rig Test</h3>
+    <div style={{ padding: '20px', textAlign: 'center', border: '1px solid #ccc', borderRadius: '8px', margin: '20px', backgroundColor: '#1e293b', color: '#fff' }}>
+      <h3>Hands-Free Alarm Test</h3>
       <button 
         onClick={scheduleTestAlarm} 
-        style={{ padding: '12px 24px', fontSize: '16px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+        style={{ padding: '12px 24px', fontSize: '16px', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
       >
-        Trigger 10s Test Alarm
+        Trigger 10s Auto-Speak Alarm
       </button>
-      <p style={{ marginTop: '10px', color: '#666' }}>Status: {statusMessage}</p>
+      <p style={{ marginTop: '10px', color: '#94a3b8' }}>Status: {statusMessage}</p>
     </div>
   );
 };
