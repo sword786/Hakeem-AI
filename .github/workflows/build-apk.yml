@@ -33,7 +33,12 @@ jobs:
     - name: Inject and Sync Android Native Scaffold
       run: |
         npx cap add android
+        
+        # This lines automatically inserts exact alarm permissions into the Android Manifest file
+        sed -i '/<application/i \    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' android/app/src/main/AndroidManifest.xml
+        
         npx cap sync android
+
 
     - name: Compile Application Package (APK)
       run: |
