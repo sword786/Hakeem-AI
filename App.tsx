@@ -8,6 +8,7 @@ import { MushafReader } from './components/MushafReader';
 import { SettingsView } from './components/SettingsView';
 import { AmbiencePlayer } from './components/AmbiencePlayer';
 import { IconHome, IconJournal, IconBook, IconSearch, IconLoading, IconCompass, IconSettings, IconAI } from './components/Icons';
+import { AlarmTester } from './AlarmTester';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>(View.HOME);
