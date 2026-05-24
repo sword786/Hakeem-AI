@@ -364,8 +364,8 @@ export default function App() {
             <span className="text-[10px] font-bold">Settings</span>
           </button>
         </div>
+        <AlarmTester />
       </nav>
-      <AlarmTester />
     </div>
   );
 }
