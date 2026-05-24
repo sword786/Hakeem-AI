@@ -1,0 +1,48 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Install Dependencies
+      run: npm install --legacy-peer-deps
+
+    - name: Build React App
+      run: npm run build
+
+    - name: Inject and Sync Android Native Scaffold
+      run: |
+        npx cap add android
+        npx cap sync android
+
+    - name: Compile Application Package (APK)
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
+
+    - name: Deliver Distributable File
+      uses: actions/upload-artifact@v4
+      with:
+        name: hakeem-ai-mobile-apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
